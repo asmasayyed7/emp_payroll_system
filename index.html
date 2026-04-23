@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayrollOS — Employee & Department Management</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #111418;
+    --bg3: #181c22;
+    --bg4: #1f242c;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --accent: #00e5a0;
+    --accent2: #00b87a;
+    --accent-dim: rgba(0,229,160,0.12);
+    --accent-glow: rgba(0,229,160,0.25);
+    --text: #e8eaed;
+    --text2: #8b9099;
+    --text3: #545a63;
+    --danger: #ff5c5c;
+    --danger-dim: rgba(255,92,92,0.12);
+    --warning: #f5a623;
+    --warning-dim: rgba(245,166,35,0.12);
+    --blue: #5b9cf6;
+    --blue-dim: rgba(91,156,246,0.12);
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+    --radius: 8px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Layout ─── */
+  .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* ─── Sidebar ─── */
+  .sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .logo-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 4px;
+    letter-spacing: -0.3px;
+  }
+
+  nav { padding: 16px 10px; flex: 1; }
+
+  .nav-section-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0 10px 8px;
+    margin-top: 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13.5px;
+    font-weight: 400;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-color: rgba(0,229,160,0.2);
+    font-weight: 500;
+  }
+  .nav-icon {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .db-badge {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .db-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ─── Main ─── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* ─── Topbar ─── */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .page-title-wrap { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .page-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,160,0.2);
+  }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #00ffb5; box-shadow: 0 0 16px var(--accent-glow); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border-color: var(--border2);
+  }
+  .btn-ghost:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+  .btn-danger {
+    background: var(--danger-dim);
+    color: var(--danger);
+    border-color: rgba(255,92,92,0.25);
+  }
+  .btn-danger:hover { background: rgba(255,92,92,0.2); }
+
+  /* ─── Content ─── */
+  .content { padding: 28px; flex: 1; }
+
+  /* ─── Page sections ─── */
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ─── Stats row ─── */
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
+
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border2); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+  .stat-card.blue::before { background: var(--blue); }
+  .stat-card.warn::before { background: var(--warning); }
+  .stat-card.danger::before { background: var(--danger); }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 6px;
+  }
+  .stat-accent { color: var(--accent); }
+  .stat-blue { color: var(--blue); }
+  .stat-warn { color: var(--warning); }
+
+  /* ─── Panel ─── */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 400;
+  }
+
+  /* ─── Table ─── */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    text-align: left;
+    white-space: nowrap;
+  }
+  td {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { transition: background 0.12s; }
+  tbody tr:hover td { background: var(--bg3); color: var(--text); }
+  tbody tr:last-child td { border-bottom: none; }
+  .td-mono { font-family: var(--mono); font-size: 12px; }
+  .td-name { color: var(--text); font-weight: 500; }
+
+  /* ─── Badges ─── */
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-green { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
+  .badge-blue  { background: var(--blue-dim);   color: var(--blue);   border: 1px solid rgba(91,156,246,0.2); }
+  .badge-warn  { background: var(--warning-dim); color: var(--warning); border: 1px solid rgba(245,166,35,0.2); }
+  .badge-red   { background: var(--danger-dim);  color: var(--danger);  border: 1px solid rgba(255,92,92,0.2); }
+
+  /* ─── Action buttons in table ─── */
+  .tbl-actions { display: flex; gap: 6px; }
+  .act-btn {
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.12s;
+    font-family: var(--sans);
+  }
+  .act-edit { background: var(--blue-dim); color: var(--blue); border-color: rgba(91,156,246,0.25); }
+  .act-edit:hover { background: rgba(91,156,246,0.22); }
+  .act-del  { background: var(--danger-dim); color: var(--danger); border-color: rgba(255,92,92,0.25); }
+  .act-del:hover { background: rgba(255,92,92,0.22); }
+  .act-view { background: var(--accent-dim); color: var(--accent); border-color: rgba(0,229,160,0.25); }
+  .act-view:hover { background: rgba(0,229,160,0.2); }
+
+  /* ─── Grid layout for two-col ─── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .full-col { grid-column: 1 / -1; }
+
+  /* ─── Modal ─── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    width: 480px;
+    max-width: 95vw;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+
+  .modal-header {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .modal-close {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.12s;
+  }
+  .modal-close:hover { background: var(--bg4); color: var(--text); }
+
+  .modal-body { padding: 22px; }
+  .modal-footer {
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  }
+
+  /* ─── Form fields ─── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-full { grid-column: 1 / -1; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .field input, .field select {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  .field select option { background: var(--bg3); }
+
+  /* ─── Salary formula visual ─── */
+  .formula-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 12px;
+    flex-wrap: wrap;
+  }
+  .f-val { color: var(--text); font-weight: 500; }
+  .f-op  { color: var(--text3); }
+  .f-plus { color: var(--accent); }
+  .f-minus { color: var(--danger); }
+  .f-total { color: var(--accent); font-weight: 600; }
+  .f-label { color: var(--text3); font-size: 11px; }
+
+  /* ─── Department cards (visual) ─── */
+  .dept-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 14px; }
+  .dept-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .dept-card:hover {
+    border-color: var(--border2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  }
+  .dept-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .dept-card:hover::after { opacity: 1; }
+  .dept-icon {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(0,229,160,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+  .dept-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .dept-loc  { font-size: 12px; color: var(--text3); margin-top: 3px; font-family: var(--mono); }
+  .dept-stats {
+    display: flex; gap: 12px; margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .dept-stat-item { flex: 1; }
+  .dept-stat-v { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--accent); }
+  .dept-stat-l { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .dept-card-actions { display: flex; gap: 6px; margin-top: 14px; }
+
+  /* ─── Report table ─── */
+  .report-highlight td { color: var(--text) !important; }
+  .salary-total { font-family: var(--mono); font-weight: 600; color: var(--accent) !important; }
+
+  /* ─── Empty state ─── */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text3);
+  }
+  .empty-state .es-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state .es-text { font-size: 13px; }
+
+  /* ─── Notification toast ─── */
+  #toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 200;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast .t-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  #toast.warn .t-dot { background: var(--warning); }
+  #toast.danger .t-dot { background: var(--danger); }
+
+  /* ─── Search/filter bar ─── */
+  .filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .search-wrap { position: relative; flex: 1; max-width: 260px; }
+  .search-wrap input {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 8px 12px 8px 34px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: var(--sans);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--text3); font-size: 13px; pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">// PayrollOS</div>
+      <div class="logo-name">Management System</div>
+    </div>
+    <nav>
+      <div class="nav-section-label">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+
+      <div class="nav-section-label">Manage</div>
+      <div class="nav-item" onclick="showPage('employees',this)">
+        <span class="nav-icon">◉</span> Employees
+      </div>
+      <div class="nav-item" onclick="showPage('departments',this)">
+        <span class="nav-icon">⬡</span> Departments
+      </div>
+      <div class="nav-item" onclick="showPage('salary',this)">
+        <span class="nav-icon">◈</span> Salary Records
+      </div>
+
+      <div class="nav-section-label">Insights</div>
+      <div class="nav-item" onclick="showPage('reports',this)">
+        <span class="nav-icon">▦</span> Reports
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="db-badge">
+        <div class="db-dot"></div>
+        PayrollDB · Connected
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title-wrap">
+        <div class="page-title" id="pageTitle">Dashboard</div>
+        <div class="page-tag" id="pageTag">OVERVIEW</div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost" onclick="showPage('employees',null);openModal('addEmp')">＋ Add Employee</button>
+        <button class="btn btn-primary" onclick="showPage('departments',null);openModal('addDept')">＋ New Department</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── DASHBOARD ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total Employees</div>
+            <div class="stat-value stat-accent" id="stat-emp">8</div>
+            <div class="stat-sub">Across all departments</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Departments</div>
+            <div class="stat-value stat-blue" id="stat-dept">4</div>
+            <div class="stat-sub">Active units</div>
+          </div>
+          <div class="stat-card warn">
+            <div class="stat-label">Total Monthly Payout</div>
+            <div class="stat-value" style="color:var(--warning);font-size:20px" id="stat-total">₹4,47,000</div>
+            <div class="stat-sub">Gross salary this month</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Salary</div>
+            <div class="stat-value stat-accent" style="font-size:20px" id="stat-avg">₹73,250</div>
+            <div class="stat-sub">Per employee</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Recent Employees <span class="panel-title-tag">LAST 5</span></div>
+              <button class="btn btn-ghost" style="padding:5px 10px;font-size:12px" onclick="showPage('employees',document.querySelectorAll('.nav-item')[1])">View all →</button>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Name</th><th>Department</th><th>Since</th><th>Status</th>
+                </tr></thead>
+                <tbody id="dash-recent"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">Dept. Breakdown <span class="panel-title-tag">SALARY SHARE</span></div>
+            </div>
+            <div style="padding:16px">
+              <div id="dept-breakdown"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EMPLOYEES ── -->
+      <div class="page" id="page-employees">
+        <div class="filter-bar">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" placeholder="Search employees…" oninput="filterEmployees(this.value)">
+          </div>
+          <button class="btn btn-primary" onclick="openModal('addEmp')">＋ Add Employee</button>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">All Employees <span class="panel-title-tag" id="emp-count-tag">8 RECORDS</span></div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>ID</th><th>Name</th><th>Email</th><th>Phone</th><th>Hire Date</th><th>Department</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="emp-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DEPARTMENTS ── -->
+      <div class="page" id="page-departments">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+          <button class="btn btn-primary" onclick="openModal('addDept')">＋ Add Department</button>
+        </div>
+        <div class="dept-grid" id="dept-grid"></div>
+      </div>
+
+      <!-- ── SALARY ── -->
+      <div class="page" id="page-salary">
+        <div class="filter-bar">
+          <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input type="text" placeholder="Search by employee…" oninput="filterSalary(this.value)">
+          </div>
+          <button class="btn btn-primary" onclick="openModal('addSal')">＋ Add Salary Record</button>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Salary Records <span class="panel-title-tag">PAYROLL</span></div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Sal ID</th><th>Employee</th><th>Department</th><th>Basic</th><th>Bonus</th><th>Deductions</th><th>Net Total</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="sal-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REPORTS ── -->
+      <div class="page" id="page-reports">
+        <div class="two-col" style="margin-bottom:14px">
+          <div class="panel full-col">
+            <div class="panel-header">
+              <div class="panel-title">Department-wise Salary Report <span class="panel-title-tag">AGGREGATE QUERY</span></div>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr>
+                  <th>Department</th><th>Location</th><th>Employees</th><th>Avg Salary</th><th>Total Salary</th><th>Highest</th><th>Lowest</th>
+                </tr></thead>
+                <tbody id="report-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Full Payslip View <span class="panel-title-tag">JOIN QUERY</span></div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Employee</th><th>Department</th><th>Basic</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th>
+              </tr></thead>
+              <tbody id="payslip-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ─── MODALS ─── -->
+
+<!-- Add Employee -->
+<div class="modal-overlay" id="modal-addEmp">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add New Employee</div>
+      <div class="modal-close" onclick="closeModal('addEmp')">×</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field form-full">
+          <label>Full Name</label>
+          <input type="text" id="inp-name" placeholder="e.g. Ravi Kumar">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="inp-email" placeholder="ravi@company.com">
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="text" id="inp-phone" placeholder="9900001234">
+        </div>
+        <div class="field">
+          <label>Hire Date</label>
+          <input type="date" id="inp-hire">
+        </div>
+        <div class="field">
+          <label>Department</label>
+          <select id="inp-dept"></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addEmp')">Cancel</button>
+      <button class="btn btn-primary" onclick="addEmployee()">Save Employee</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Department -->
+<div class="modal-overlay" id="modal-addDept">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add New Department</div>
+      <div class="modal-close" onclick="closeModal('addDept')">×</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field form-full">
+          <label>Department Name</label>
+          <input type="text" id="inp-dname" placeholder="e.g. Operations">
+        </div>
+        <div class="field form-full">
+          <label>Location</label>
+          <input type="text" id="inp-dloc" placeholder="e.g. Chennai">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addDept')">Cancel</button>
+      <button class="btn btn-primary" onclick="addDepartment()">Save Department</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Salary -->
+<div class="modal-overlay" id="modal-addSal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Salary Record</div>
+      <div class="modal-close" onclick="closeModal('addSal')">×</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field form-full">
+          <label>Employee</label>
+          <select id="inp-sal-emp"></select>
+        </div>
+        <div class="field">
+          <label>Basic Salary (₹)</label>
+          <input type="number" id="inp-basic" placeholder="60000" oninput="updateFormula()">
+        </div>
+        <div class="field">
+          <label>Bonus (₹)</label>
+          <input type="number" id="inp-bonus" placeholder="5000" oninput="updateFormula()">
+        </div>
+        <div class="field">
+          <label>Deductions (₹)</label>
+          <input type="number" id="inp-ded" placeholder="3000" oninput="updateFormula()">
+        </div>
+        <div class="field form-full">
+          <label>Calculated Net Salary</label>
+          <div class="formula-bar">
+            <span class="f-val" id="f-basic">0</span>
+            <span class="f-op f-plus">+</span>
+            <span class="f-val" id="f-bonus">0</span>
+            <span class="f-op f-minus">−</span>
+            <span class="f-val" id="f-ded">0</span>
+            <span class="f-op">=</span>
+            <span class="f-total" id="f-total">₹0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addSal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addSalary()">Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Employee -->
+<div class="modal-overlay" id="modal-editEmp">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Employee</div>
+      <div class="modal-close" onclick="closeModal('editEmp')">×</div>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-emp-id">
+      <div class="form-grid">
+        <div class="field form-full">
+          <label>Full Name</label>
+          <input type="text" id="edit-name">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="edit-email">
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="text" id="edit-phone">
+        </div>
+        <div class="field">
+          <label>Department</label>
+          <select id="edit-dept"></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('editEmp')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditEmployee()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"><div class="t-dot"></div><span id="toast-msg">Saved!</span></div>
+
+<script>
+// ─── Default seed data ────────────────────────────────────────
+const DEFAULT_DEPTS = [
+  { id:1, name:'Engineering', loc:'Bangalore', icon:'⚙️' },
+  { id:2, name:'HR',          loc:'Mumbai',    icon:'👥' },
+  { id:3, name:'Finance',     loc:'Delhi',     icon:'💰' },
+  { id:4, name:'Marketing',   loc:'Hyderabad', icon:'📣' },
+];
+const DEFAULT_EMPS = [
+  { id:1, name:'Arjun Sharma',  email:'arjun@company.com',  phone:'9900001111', hire:'2021-03-15', deptId:1 },
+  { id:2, name:'Priya Nair',    email:'priya@company.com',  phone:'9900002222', hire:'2020-07-01', deptId:1 },
+  { id:3, name:'Rahul Mehta',   email:'rahul@company.com',  phone:'9900003333', hire:'2019-11-20', deptId:2 },
+  { id:4, name:'Sneha Patel',   email:'sneha@company.com',  phone:'9900004444', hire:'2022-01-10', deptId:2 },
+  { id:5, name:'Karan Gupta',   email:'karan@company.com',  phone:'9900005555', hire:'2018-05-30', deptId:3 },
+  { id:6, name:'Meena Iyer',    email:'meena@company.com',  phone:'9900006666', hire:'2023-08-05', deptId:3 },
+  { id:7, name:'Rohan Desai',   email:'rohan@company.com',  phone:'9900007777', hire:'2021-06-14', deptId:4 },
+  { id:8, name:'Anjali Verma',  email:'anjali@company.com', phone:'9900008888', hire:'2020-09-22', deptId:4 },
+];
+const DEFAULT_SALS = [
+  { id:1, empId:1, basic:80000, bonus:10000, ded:5000 },
+  { id:2, empId:2, basic:90000, bonus:12000, ded:6000 },
+  { id:3, empId:3, basic:55000, bonus:5000,  ded:3000 },
+  { id:4, empId:4, basic:60000, bonus:7000,  ded:4000 },
+  { id:5, empId:5, basic:70000, bonus:8000,  ded:4500 },
+  { id:6, empId:6, basic:65000, bonus:6000,  ded:4000 },
+  { id:7, empId:7, basic:50000, bonus:4000,  ded:2500 },
+  { id:8, empId:8, basic:55000, bonus:5500,  ded:3000 },
+];
+
+// ─── localStorage persistence ─────────────────────────────────
+function saveData() {
+  localStorage.setItem('payroll_depts',    JSON.stringify(depts));
+  localStorage.setItem('payroll_emps',     JSON.stringify(emps));
+  localStorage.setItem('payroll_salaries', JSON.stringify(salaries));
+  localStorage.setItem('payroll_nextEmpId',  nextEmpId);
+  localStorage.setItem('payroll_nextDeptId', nextDeptId);
+  localStorage.setItem('payroll_nextSalId',  nextSalId);
+}
+function loadData() {
+  depts     = JSON.parse(localStorage.getItem('payroll_depts'))    || DEFAULT_DEPTS;
+  emps      = JSON.parse(localStorage.getItem('payroll_emps'))     || DEFAULT_EMPS;
+  salaries  = JSON.parse(localStorage.getItem('payroll_salaries')) || DEFAULT_SALS;
+  nextEmpId  = +localStorage.getItem('payroll_nextEmpId')  || 9;
+  nextDeptId = +localStorage.getItem('payroll_nextDeptId') || 5;
+  nextSalId  = +localStorage.getItem('payroll_nextSalId')  || 9;
+}
+
+// ─── Data store (loaded from localStorage or defaults) ────────
+let depts, emps, salaries;
+let nextEmpId, nextDeptId, nextSalId;
+loadData();
+
+// ─── Helpers ─────────────────────────────────────────────────
+const fmt = n => '₹' + Number(n).toLocaleString('en-IN');
+const getDept = id => depts.find(d => d.id === id) || { name:'—', loc:'—', icon:'📁' };
+const getEmp  = id => emps.find(e => e.id === id);
+const getSal  = empId => salaries.find(s => s.empId === empId);
+const net     = s => s.basic + s.bonus - s.ded;
+
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  const m = document.getElementById('toast-msg');
+  t.className = type;
+  m.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── Navigation ──────────────────────────────────────────────
+const titles = { dashboard:'Dashboard', employees:'Employees', departments:'Departments', salary:'Salary Records', reports:'Reports' };
+const tags   = { dashboard:'OVERVIEW', employees:'CRUD', departments:'CRUD', salary:'PAYROLL', reports:'ANALYTICS' };
+
+function showPage(id, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('pageTitle').textContent = titles[id];
+  document.getElementById('pageTag').textContent   = tags[id];
+  if (navEl) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    navEl.classList.add('active');
+  } else {
+    const map = { employees:1, departments:2, salary:3, reports:4, dashboard:0 };
+    document.querySelectorAll('.nav-item').forEach((n,i) => n.classList.toggle('active', i===map[id]));
+  }
+  renderAll();
+}
+
+// ─── Modals ──────────────────────────────────────────────────
+function openModal(name) {
+  if (name === 'addEmp') {
+    const sel = document.getElementById('inp-dept');
+    sel.innerHTML = depts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  }
+  if (name === 'addSal') {
+    const sel = document.getElementById('inp-sal-emp');
+    sel.innerHTML = emps.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+    updateFormula();
+  }
+  document.getElementById('modal-' + name).classList.add('open');
+}
+function closeModal(name) {
+  document.getElementById('modal-' + name).classList.remove('open');
+}
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ─── Formula live preview ────────────────────────────────────
+function updateFormula() {
+  const b = +document.getElementById('inp-basic').value || 0;
+  const bn = +document.getElementById('inp-bonus').value || 0;
+  const d = +document.getElementById('inp-ded').value || 0;
+  document.getElementById('f-basic').textContent = '₹' + b.toLocaleString('en-IN');
+  document.getElementById('f-bonus').textContent = '₹' + bn.toLocaleString('en-IN');
+  document.getElementById('f-ded').textContent   = '₹' + d.toLocaleString('en-IN');
+  document.getElementById('f-total').textContent = '₹' + (b + bn - d).toLocaleString('en-IN');
+}
+
+// ─── CRUD: Employee ──────────────────────────────────────────
+function addEmployee() {
+  const name  = document.getElementById('inp-name').value.trim();
+  const email = document.getElementById('inp-email').value.trim();
+  const phone = document.getElementById('inp-phone').value.trim();
+  const hire  = document.getElementById('inp-hire').value;
+  const dept  = +document.getElementById('inp-dept').value;
+  if (!name || !email || !phone || !hire) return toast('Fill all fields', 'warn');
+  emps.push({ id: nextEmpId++, name, email, phone, hire, deptId: dept });
+  saveData();
+  closeModal('addEmp');
+  ['inp-name','inp-email','inp-phone','inp-hire'].forEach(i => document.getElementById(i).value='');
+  renderAll();
+  toast('Employee added!');
+}
+
+function deleteEmployee(id) {
+  if (!confirm('Delete this employee?')) return;
+  emps = emps.filter(e => e.id !== id);
+  salaries = salaries.filter(s => s.empId !== id);
+  saveData();
+  renderAll();
+  toast('Employee deleted', 'danger');
+}
+
+function editEmployee(id) {
+  const e = getEmp(id);
+  document.getElementById('edit-emp-id').value  = id;
+  document.getElementById('edit-name').value    = e.name;
+  document.getElementById('edit-email').value   = e.email;
+  document.getElementById('edit-phone').value   = e.phone;
+  const sel = document.getElementById('edit-dept');
+  sel.innerHTML = depts.map(d => `<option value="${d.id}" ${d.id===e.deptId?'selected':''}>${d.name}</option>`).join('');
+  openModal('editEmp');
+}
+function saveEditEmployee() {
+  const id = +document.getElementById('edit-emp-id').value;
+  const e  = getEmp(id);
+  e.name  = document.getElementById('edit-name').value.trim();
+  e.email = document.getElementById('edit-email').value.trim();
+  e.phone = document.getElementById('edit-phone').value.trim();
+  e.deptId = +document.getElementById('edit-dept').value;
+  saveData();
+  closeModal('editEmp');
+  renderAll();
+  toast('Employee updated!');
+}
+
+// ─── CRUD: Department ────────────────────────────────────────
+function addDepartment() {
+  const name = document.getElementById('inp-dname').value.trim();
+  const loc  = document.getElementById('inp-dloc').value.trim();
+  if (!name || !loc) return toast('Fill all fields', 'warn');
+  depts.push({ id: nextDeptId++, name, loc, icon:'🏢' });
+  saveData();
+  closeModal('addDept');
+  document.getElementById('inp-dname').value = '';
+  document.getElementById('inp-dloc').value  = '';
+  renderAll();
+  toast('Department added!');
+}
+function deleteDepartment(id) {
+  const hasEmps = emps.some(e => e.deptId === id);
+  if (hasEmps) return toast('Cannot delete — department has employees!', 'danger');
+  depts = depts.filter(d => d.id !== id);
+  saveData();
+  renderAll();
+  toast('Department deleted', 'danger');
+}
+
+// ─── CRUD: Salary ─────────────────────────────────────────────
+function addSalary() {
+  const empId = +document.getElementById('inp-sal-emp').value;
+  const basic = +document.getElementById('inp-basic').value;
+  const bonus = +document.getElementById('inp-bonus').value || 0;
+  const ded   = +document.getElementById('inp-ded').value || 0;
+  if (!basic) return toast('Enter basic salary', 'warn');
+  salaries.push({ id: nextSalId++, empId, basic, bonus, ded });
+  saveData();
+  closeModal('addSal');
+  ['inp-basic','inp-bonus','inp-ded'].forEach(i => document.getElementById(i).value='');
+  renderAll();
+  toast('Salary record added!');
+}
+function deleteSalary(id) {
+  salaries = salaries.filter(s => s.id !== id);
+  saveData();
+  renderAll();
+  toast('Record deleted', 'danger');
+}
+
+// ─── Render Functions ─────────────────────────────────────────
+function renderAll() {
+  renderStats();
+  renderDashRecent();
+  renderDeptBreakdown();
+  renderEmpTable(emps);
+  renderDeptGrid();
+  renderSalTable(salaries);
+  renderReports();
+}
+
+function renderStats() {
+  document.getElementById('stat-emp').textContent  = emps.length;
+  document.getElementById('stat-dept').textContent = depts.length;
+  const total = salaries.reduce((a,s) => a + net(s), 0);
+  const avg   = salaries.length ? Math.round(total / salaries.length) : 0;
+  document.getElementById('stat-total').textContent = fmt(total);
+  document.getElementById('stat-avg').textContent   = fmt(avg);
+}
+
+function renderDashRecent() {
+  const tbody = document.getElementById('dash-recent');
+  const last5 = [...emps].slice(-5).reverse();
+  tbody.innerHTML = last5.map(e => {
+    const d = getDept(e.deptId);
+    return `<tr>
+      <td class="td-name">${e.name}</td>
+      <td><span class="badge badge-blue">${d.name}</span></td>
+      <td class="td-mono">${e.hire}</td>
+      <td><span class="badge badge-green">Active</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" class="empty-state" style="padding:20px;text-align:center;color:var(--text3)">No employees</td></tr>';
+}
+
+function renderDeptBreakdown() {
+  const wrap = document.getElementById('dept-breakdown');
+  const totalPay = salaries.reduce((a,s)=>a+net(s),0) || 1;
+  const rows = depts.map(d => {
+    const dEmps = emps.filter(e => e.deptId === d.id);
+    const dSals = salaries.filter(s => dEmps.some(e => e.id === s.empId));
+    const sum = dSals.reduce((a,s)=>a+net(s),0);
+    const pct = Math.round(sum / totalPay * 100);
+    return { name: d.name, sum, pct, icon: d.icon };
+  }).sort((a,b)=>b.sum-a.sum);
+
+  wrap.innerHTML = rows.map(r => `
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:13px;color:var(--text2)">${r.icon} ${r.name}</span>
+        <span style="font-family:var(--mono);font-size:11px;color:var(--accent)">${fmt(r.sum)}</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:4px;height:6px;overflow:hidden">
+        <div style="background:var(--accent);height:100%;width:${r.pct}%;border-radius:4px;transition:width 0.6s ease;opacity:0.85"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px">${r.pct}% of total</div>
+    </div>
+  `).join('');
+}
+
+function renderEmpTable(list) {
+  const tbody = document.getElementById('emp-table');
+  document.getElementById('emp-count-tag').textContent = list.length + ' RECORDS';
+  tbody.innerHTML = list.map(e => {
+    const d = getDept(e.deptId);
+    return `<tr>
+      <td class="td-mono" style="color:var(--text3)">#${String(e.id).padStart(3,'0')}</td>
+      <td class="td-name">${e.name}</td>
+      <td class="td-mono" style="font-size:11px">${e.email}</td>
+      <td class="td-mono">${e.phone}</td>
+      <td class="td-mono">${e.hire}</td>
+      <td><span class="badge badge-blue">${d.name}</span></td>
+      <td><div class="tbl-actions">
+        <button class="act-btn act-edit" onclick="editEmployee(${e.id})">Edit</button>
+        <button class="act-btn act-del"  onclick="deleteEmployee(${e.id})">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7"><div class="empty-state"><div class="es-icon">◉</div><div class="es-text">No employees found</div></div></td></tr>`;
+}
+
+function filterEmployees(q) {
+  const filtered = emps.filter(e =>
+    e.name.toLowerCase().includes(q.toLowerCase()) ||
+    e.email.toLowerCase().includes(q.toLowerCase()) ||
+    getDept(e.deptId).name.toLowerCase().includes(q.toLowerCase())
+  );
+  renderEmpTable(filtered);
+}
+
+function renderDeptGrid() {
+  const grid = document.getElementById('dept-grid');
+  grid.innerHTML = depts.map(d => {
+    const count = emps.filter(e => e.deptId === d.id).length;
+    const dSals = salaries.filter(s => emps.find(e=>e.id===s.empId && e.deptId===d.id));
+    const total = dSals.reduce((a,s)=>a+net(s),0);
+    return `<div class="dept-card">
+      <div class="dept-icon">${d.icon}</div>
+      <div class="dept-name">${d.name}</div>
+      <div class="dept-loc">📍 ${d.loc}</div>
+      <div class="dept-stats">
+        <div class="dept-stat-item">
+          <div class="dept-stat-v">${count}</div>
+          <div class="dept-stat-l">Employees</div>
+        </div>
+        <div class="dept-stat-item">
+          <div class="dept-stat-v" style="font-size:13px">${fmt(total)}</div>
+          <div class="dept-stat-l">Total Pay</div>
+        </div>
+      </div>
+      <div class="dept-card-actions">
+        <button class="act-btn act-del" onclick="deleteDepartment(${d.id})">Delete</button>
+      </div>
+    </div>`;
+  }).join('') || `<div class="empty-state"><div class="es-icon">⬡</div><div class="es-text">No departments yet</div></div>`;
+}
+
+function renderSalTable(list) {
+  const tbody = document.getElementById('sal-table');
+  tbody.innerHTML = list.map(s => {
+    const e = getEmp(s.empId);
+    const d = e ? getDept(e.deptId) : { name:'—' };
+    const n = net(s);
+    return `<tr>
+      <td class="td-mono" style="color:var(--text3)">#${String(s.id).padStart(3,'0')}</td>
+      <td class="td-name">${e ? e.name : '—'}</td>
+      <td><span class="badge badge-blue">${d.name}</span></td>
+      <td class="td-mono">${fmt(s.basic)}</td>
+      <td class="td-mono" style="color:var(--accent)">${fmt(s.bonus)}</td>
+      <td class="td-mono" style="color:var(--danger)">${fmt(s.ded)}</td>
+      <td class="td-mono salary-total">${fmt(n)}</td>
+      <td><div class="tbl-actions">
+        <button class="act-btn act-del" onclick="deleteSalary(${s.id})">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="8"><div class="empty-state"><div class="es-icon">◈</div><div class="es-text">No records found</div></div></td></tr>`;
+}
+
+function filterSalary(q) {
+  const filtered = salaries.filter(s => {
+    const e = getEmp(s.empId);
+    return e && e.name.toLowerCase().includes(q.toLowerCase());
+  });
+  renderSalTable(filtered);
+}
+
+function renderReports() {
+  // Dept-wise report
+  const rtbody = document.getElementById('report-table');
+  const rows = depts.map(d => {
+    const dEmps = emps.filter(e => e.deptId === d.id);
+    const dSals = salaries.filter(s => dEmps.some(e => e.id === s.empId));
+    const nets  = dSals.map(s => net(s));
+    const total = nets.reduce((a,v)=>a+v,0);
+    const avg   = nets.length ? Math.round(total / nets.length) : 0;
+    const hi    = nets.length ? Math.max(...nets) : 0;
+    const lo    = nets.length ? Math.min(...nets) : 0;
+    return { d, count: dEmps.length, avg, total, hi, lo };
+  }).sort((a,b)=>b.total-a.total);
+
+  rtbody.innerHTML = rows.map(r => `<tr class="report-highlight">
+    <td class="td-name">${r.d.icon} ${r.d.name}</td>
+    <td class="td-mono" style="font-size:11px;color:var(--text3)">${r.d.loc}</td>
+    <td class="td-mono">${r.count}</td>
+    <td class="td-mono">${fmt(r.avg)}</td>
+    <td class="salary-total">${fmt(r.total)}</td>
+    <td class="td-mono" style="color:var(--accent)">${fmt(r.hi)}</td>
+    <td class="td-mono" style="color:var(--text3)">${fmt(r.lo)}</td>
+  </tr>`).join('');
+
+  // Full payslip
+  const ptbody = document.getElementById('payslip-table');
+  const joined = emps.map(e => {
+    const s = getSal(e.id);
+    const d = getDept(e.deptId);
+    return s ? { e, d, s } : null;
+  }).filter(Boolean).sort((a,b) => net(b.s) - net(a.s));
+
+  ptbody.innerHTML = joined.map(({e,d,s}) => `<tr>
+    <td class="td-name">${e.name}</td>
+    <td><span class="badge badge-blue">${d.name}</span></td>
+    <td class="td-mono">${fmt(s.basic)}</td>
+    <td class="td-mono" style="color:var(--accent)">${fmt(s.bonus)}</td>
+    <td class="td-mono" style="color:var(--danger)">${fmt(s.ded)}</td>
+    <td class="salary-total">${fmt(net(s))}</td>
+  </tr>`).join('') || `<tr><td colspan="6"><div class="empty-state"><div class="es-icon">▦</div><div class="es-text">No payslip data</div></div></td></tr>`;
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>

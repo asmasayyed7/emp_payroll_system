@@ -11,7 +11,7 @@ PayrollOS/
 ├── sql/
 │   └── schema.sql    ← Full MySQL database schema + sample data
 └── screenshots
-<img width="1912" height="758" alt="image" src="https://github.com/user-attachments/assets/e31a6da2-35ab-4880-bed6-858b67074a8c" />
+https://github.com/asmasayyed7/emp_payroll_system/blob/507eac5f0d4105c440da5919c5038de9c6399a1a/Screenshot%202026-04-23%20224809.png
 
 
 ```

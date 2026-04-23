@@ -10,7 +10,10 @@ PayrollOS/
 ├── README.md         ← You are here
 ├── sql/
 │   └── schema.sql    ← Full MySQL database schema + sample data
-└── screenshots/      ← (Add your own screenshots here)
+└── screenshots
+<img width="1912" height="758" alt="image" src="https://github.com/user-attachments/assets/e31a6da2-35ab-4880-bed6-858b67074a8c" />
+
+
 ```
 
 ## How to Run

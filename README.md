@@ -10,12 +10,11 @@ PayrollOS/
 ├── README.md         ← You are here
 ├── sql/
 │   └── schema.sql    ← Full MySQL database schema + sample data
-└── screenshots
-
-![image alt]{https://github.com/asmasayyed7/emp_payroll_system/blob/35c5f198ff9a771610e349e1a067c996fd83c5ca/Screenshot%202026-04-23%20224809.png}
-
-
 ```
+## Preview
+<img width="1912" height="758" alt="Screenshot 2026-04-23 224809" src="https://github.com/user-attachments/assets/4b654022-6587-4a1c-88f2-a8b9d3f813c8" />
+<img width="1911" height="824" alt="Screenshot 2026-04-23 224753" src="https://github.com/user-attachments/assets/8e31e17a-5bf5-476b-8393-55b6830d397d" />
+
 
 ## How to Run
 
